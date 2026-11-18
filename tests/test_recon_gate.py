@@ -62,7 +62,7 @@ def test_file_ghep_khong_co_khoa_bi_chan(tmp_path):
     a, b, cap, _ = _kq()
     for c in cap:
         c.vai_tro = "SO_SANH" if c.vai_tro == "KHOA" else c.vai_tro
-    p = tmp_path / "ghep.csv"
+    p = tmp_path / "ghep.xlsx"
     ghi_file_ghep(cap, a, b, p)
     with pytest.raises(LoiGhepCot, match="KHOA"):
         doc_file_ghep(p, a, b)
@@ -84,3 +84,19 @@ def test_csv_dau_cham_phay(tmp_path):
     kq = doi_soat(a, b, de_xuat(a, b))
     assert [d.khoa for d in kq.theo_nhom("LECH")] == ["X2"]
     assert [d.khoa for d in kq.theo_nhom("KHOP")] == ["X1"]
+
+
+def test_nguoi_duyet_sua_file_ghep_xlsx(tmp_path):
+    from openpyxl import load_workbook
+    a, b, cap, _ = _kq()
+    p = tmp_path / "ghep.xlsx"
+    ghi_file_ghep(cap, a, b, p)
+    wb = load_workbook(p)
+    ws = wb["Ghep_cot"]
+    for hang in ws.iter_rows(min_row=2):
+        if hang[0].value == "Diễn giải":          # người duyệt ghép thêm Diễn giải <-> Khách hàng, chỉ hiển thị
+            hang[1].value, hang[2].value, hang[3].value = "Khách hàng", "HIEN_THI", "chu"
+    wb.save(p)
+    cap2 = doc_file_ghep(p, a, b)
+    assert ("Diễn giải", "Khách hàng", "HIEN_THI") in {(c.cot_a, c.cot_b, c.vai_tro) for c in cap2}
+    assert sum(c.vai_tro == "KHOA" for c in cap2) == 1

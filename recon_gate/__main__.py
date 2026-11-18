@@ -80,7 +80,7 @@ def chay(file_a: Path, file_b: Path, thu_muc_ra: Path, dung_sai: float, dong_y: 
     ten_lan_chay = datetime.now().strftime("%Y%m%d_%H%M%S")
     thu_muc = thu_muc_ra / ten_lan_chay
     thu_muc.mkdir(parents=True, exist_ok=True)
-    file_ghep = thu_muc / "ghep_cot.csv"
+    file_ghep = thu_muc / "ghep_cot.xlsx"
 
     _buoc(2, "Đề xuất ghép cột")
     cap = de_xuat(a, b)
@@ -97,7 +97,7 @@ def chay(file_a: Path, file_b: Path, thu_muc_ra: Path, dung_sai: float, dong_y: 
         _in(f"  Không ghép (bỏ qua): A: {', '.join(bo_qua_a) or '-'} | B: {', '.join(bo_qua_b) or '-'}")
     _in()
     _in("  KHOA = cột dùng để nối dòng 2 bên · SO_SANH = so giá trị · HIEN_THI = chỉ in cạnh nhau")
-    _in(f"  Muốn sửa: mở {file_ghep}, sửa cột Cot_ben_B hoặc Vai_tro, lưu lại rồi quay về đây.")
+    _in(f"  Muốn sửa: mở {file_ghep}, chọn lại Cot_ben_B / Vai_tro trong danh sách, lưu (Ctrl+S) rồi quay về đây.")
 
     # CỔNG 1: người duyệt ghép cột
     while True:

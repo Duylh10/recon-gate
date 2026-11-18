@@ -5,7 +5,7 @@ Kết quả chỉ là đề xuất: người dùng duyệt ở Cổng 1 trước
 """
 from __future__ import annotations
 
-import csv
+import warnings
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -165,20 +165,50 @@ COT_FILE_GHEP = ["Cot_ben_A", "Cot_ben_B", "Vai_tro", "Loai", "Do_tin_cay", "Can
 
 
 def ghi_file_ghep(cap: list[CapCot], a: Bang, b: Bang, p: Path) -> None:
+    """Ghi bảng ghép cột ra .xlsx để người duyệt sửa trong Excel (có danh sách chọn sẵn)."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.worksheet.datavalidation import DataValidation
+
     da_a = {c.cot_a for c in cap}
     da_b = {c.cot_b for c in cap}
-    with p.open("w", encoding="utf-8-sig", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(COT_FILE_GHEP)
-        for c in cap:
-            w.writerow([c.cot_a, c.cot_b, c.vai_tro, c.loai, c.diem,
-                        "CẦN XEM" if c.diem < NGUONG_CAN_XEM else "", c.ly_do])
-        for ca in a.cot:
-            if ca not in da_a:
-                w.writerow([ca, "", "BO_QUA", "", "", "", "không tìm thấy cột tương ứng bên B"])
-        for cb in b.cot:
-            if cb not in da_b:
-                w.writerow(["", cb, "BO_QUA", "", "", "", "không tìm thấy cột tương ứng bên A"])
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Ghep_cot"
+    ws.append(COT_FILE_GHEP)
+    for c in cap:
+        ws.append([c.cot_a, c.cot_b, c.vai_tro, c.loai, c.diem,
+                   "CẦN XEM" if c.diem < NGUONG_CAN_XEM else "", c.ly_do])
+    for ca in a.cot:
+        if ca not in da_a:
+            ws.append([ca, "", "BO_QUA", "", "", "", "không tìm thấy cột tương ứng bên B"])
+    for cb in b.cot:
+        if cb not in da_b:
+            ws.append(["", cb, "BO_QUA", "", "", "", "không tìm thấy cột tương ứng bên A"])
+    n = ws.max_row + 20  # chừa chỗ để người dùng thêm dòng
+    for ten, cot, ds in (("A", "A", a.cot), ("B", "B", b.cot)):
+        tham_chieu = wb.create_sheet(f"Cot_ben_{ten}")
+        for x in ds:
+            tham_chieu.append([x])
+        dv = DataValidation(type="list", formula1=f"=Cot_ben_{ten}!$A$1:$A${max(1, len(ds))}", allow_blank=True)
+        ws.add_data_validation(dv)
+        dv.add(f"{cot}2:{cot}{n}")
+    for cot, gia_tri in (("C", "KHOA,SO_SANH,HIEN_THI,BO_QUA"), ("D", "so,ngay,chu")):
+        dv = DataValidation(type="list", formula1=f'"{gia_tri}"', allow_blank=True)
+        ws.add_data_validation(dv)
+        dv.add(f"{cot}2:{cot}{n}")
+    for o in ws[1]:
+        o.font = Font(bold=True, color="FFFFFF")
+        o.fill = PatternFill("solid", fgColor="1F3A5F")
+    for hang in ws.iter_rows(min_row=2):
+        if hang[5].value:
+            hang[5].fill = PatternFill("solid", fgColor="FFF1CC")
+    for cot, rong in zip("ABCDEFG", (30, 30, 12, 8, 11, 10, 40)):
+        ws.column_dimensions[cot].width = rong
+    ws.freeze_panes = "A2"
+    ghi_chu = ws.max_row + 2
+    ws.cell(ghi_chu, 1, "Sửa cột Cot_ben_B / Vai_tro / Loai bằng danh sách chọn. Đúng 1 dòng KHOA. Lưu lại (Ctrl+S) rồi quay về cửa sổ đen bấm Enter.")
+    wb.save(p)
 
 
 class LoiGhepCot(Exception):
@@ -187,28 +217,49 @@ class LoiGhepCot(Exception):
 
 def doc_file_ghep(p: Path, a: Bang, b: Bang) -> list[CapCot]:
     """Đọc lại file ghép sau khi người dùng sửa. Kiểm lỗi trước khi cho đi tiếp."""
+    from openpyxl import load_workbook
+
     loi, cap = [], []
-    with p.open(encoding="utf-8-sig", newline="") as f:
-        for i, d in enumerate(csv.DictReader(f), start=2):
-            ca, cb = (d.get("Cot_ben_A") or "").strip(), (d.get("Cot_ben_B") or "").strip()
-            vai = (d.get("Vai_tro") or "").strip().upper()
-            loai = (d.get("Loai") or "").strip().lower()
-            if vai == "BO_QUA" or (not ca and not cb):
-                continue
-            if vai not in ("KHOA", "SO_SANH", "HIEN_THI"):
-                loi.append(f"Dòng {i}: Vai_tro '{vai}' không hợp lệ (dùng KHOA, SO_SANH, HIEN_THI hoặc BO_QUA).")
-                continue
-            if ca not in a.cot:
-                loi.append(f"Dòng {i}: bên A không có cột '{ca}'.")
-            if cb not in b.cot:
-                loi.append(f"Dòng {i}: bên B không có cột '{cb}'.")
-            if loai not in ("so", "ngay", "chu"):
-                loi.append(f"Dòng {i}: Loai '{loai}' không hợp lệ (dùng so, ngay hoặc chu).")
-            try:
-                diem = float(d.get("Do_tin_cay") or 0)
-            except ValueError:
-                diem = 0.0
-            cap.append(CapCot(ca, cb, loai, vai, diem, (d.get("Ly_do") or "").strip()))
+    with warnings.catch_warnings():
+        # Excel lưu danh sách chọn tham chiếu sheet khác dạng "extension"; chỉ cần đọc giá trị ô.
+        warnings.simplefilter("ignore", UserWarning)
+        try:
+            wb = load_workbook(p, read_only=True, data_only=True)
+        except Exception as e:
+            raise LoiGhepCot(f"Không mở được {p.name} ({type(e).__name__}). File đang mở trong Excel chưa lưu?") from e
+        try:
+            if "Ghep_cot" not in wb.sheetnames:
+                raise LoiGhepCot("Không thấy sheet 'Ghep_cot'. Sheet bị đổi tên hoặc xóa?")
+            hang = [list(r) for r in wb["Ghep_cot"].iter_rows(values_only=True)]
+        finally:
+            wb.close()
+    tieu_de = [str(x or "").strip() for x in hang[0]] if hang else []
+    thieu = [c for c in COT_FILE_GHEP[:4] if c not in tieu_de]
+    if thieu:
+        raise LoiGhepCot(f"Dòng tiêu đề bị sửa, thiếu cột: {', '.join(thieu)}.")
+    ds = [dict(zip(tieu_de, [("" if v is None else str(v)) for v in r])) for r in hang[1:]]
+    for i, d in enumerate(ds, start=2):
+        if (d.get("Cot_ben_A") or "").startswith("Sửa cột Cot_ben_B"):
+            continue
+        ca, cb = (d.get("Cot_ben_A") or "").strip(), (d.get("Cot_ben_B") or "").strip()
+        vai = (d.get("Vai_tro") or "").strip().upper()
+        loai = (d.get("Loai") or "").strip().lower()
+        if vai == "BO_QUA" or (not ca and not cb):
+            continue
+        if vai not in ("KHOA", "SO_SANH", "HIEN_THI"):
+            loi.append(f"Dòng {i}: Vai_tro '{vai}' không hợp lệ (dùng KHOA, SO_SANH, HIEN_THI hoặc BO_QUA).")
+            continue
+        if ca not in a.cot:
+            loi.append(f"Dòng {i}: bên A không có cột '{ca}'.")
+        if cb not in b.cot:
+            loi.append(f"Dòng {i}: bên B không có cột '{cb}'.")
+        if loai not in ("so", "ngay", "chu"):
+            loi.append(f"Dòng {i}: Loai '{loai}' không hợp lệ (dùng so, ngay hoặc chu).")
+        try:
+            diem = float(d.get("Do_tin_cay") or 0)
+        except ValueError:
+            diem = 0.0
+        cap.append(CapCot(ca, cb, loai, vai, diem, (d.get("Ly_do") or "").strip()))
     so_khoa = sum(c.vai_tro == "KHOA" for c in cap)
     if so_khoa != 1:
         loi.append(f"Cần đúng 1 dòng Vai_tro = KHOA, hiện có {so_khoa}.")

@@ -47,13 +47,13 @@ Trong 2 file đã cài sẵn lỗi: 5 dòng lệch tiền, 3 dòng lệch ngày,
 1. Chọn 2 file trong File Explorer (giữ `Ctrl` để chọn cả 2), **kéo thả vào `DOI_SOAT.bat`**.
 2. Ở **Cổng 1**, đọc bảng ghép cột:
    - Đúng thì bấm `Enter`.
-   - Sai thì gõ `s` rồi `Enter`. File `ghep_cot.csv` sẽ mở ra. Sửa cột `Cot_ben_B` hoặc `Vai_tro`, lưu lại, quay về cửa sổ đen, bấm `Enter`.
+   - Sai thì gõ `s` rồi `Enter`. File `ghep_cot.xlsx` mở trong Excel. Chọn lại `Cot_ben_B` hoặc `Vai_tro` trong danh sách thả xuống, lưu (`Ctrl+S`), quay về cửa sổ đen, bấm `Enter`.
 3. Ở **Cổng 2**, xem tóm tắt rồi bấm `Enter` để xuất file.
 4. File kết quả tự mở. Nó nằm trong `ket_qua/<ngày_giờ>/`.
 
 **2 file gốc của bạn không bị sửa.**
 
-### Vai trò của cột trong `ghep_cot.csv`
+### Vai trò của cột trong `ghep_cot.xlsx`
 
 | Vai_tro | Nghĩa |
 |---|---|
@@ -117,6 +117,8 @@ Recon-Gate được phát triển từ kinh nghiệm đối soát số liệu nh
 Tôi là **Lê Hoàng Duy**, giảng viên thực chiến về AI ứng dụng cho người đi làm không chuyên kỹ thuật. Thạc sĩ Quản trị kinh doanh (UEH); nguyên Trưởng phòng Kỹ thuật một công ty viễn thông giai đoạn 11/2019–06/2025 (quản lý 45 nhân sự); hiện quản lý dự án hệ thống truyền tin báo cháy quy mô 41.000+ cơ sở. Tôi đang dạy:
 * Khóa AI ứng dụng 8 buổi cho nhân sự văn phòng.
 * AI Agent cho doanh nghiệp (FMCG, công nghệ, tập đoàn đa ngành), kèm cặp 1-1 cho người đi làm, và lớp cho giảng viên đại học.
+
+🔗 **Kết nối & trao đổi:** [LinkedIn](https://www.linkedin.com/in/duy-le-212664292/)
 
 ## Giấy phép
 
